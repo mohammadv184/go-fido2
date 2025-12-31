@@ -1,0 +1,78 @@
+version: "2"
+
+run:
+  timeout: 10m # Maximum execution time for golangci-lint (10 minutes)
+
+linters:
+  enable:
+    - asciicheck # Checks for non-ASCII characters in identifiers and comments
+    - bodyclose # Ensures HTTP response bodies are properly closed
+    - canonicalheader # Enforces canonical format for HTTP headers (e.g., Content-Type)
+    - decorder # Verifies correct order of declarations (const, type, var)
+    - errcheck # Ensures errors returned by functions are checked
+    - errchkjson # Checks for unchecked errors in JSON encoding/decoding
+    - errorlint # Enforces proper error handling with errors.Is/As
+    - forbidigo # Prohibits use of specific functions (e.g., fmt.Print*, os.Exit)
+    - forcetypeassert # Ensures type assertions are checked for errors
+    - goconst # Detects repeated literals that could be constants
+    - gocyclo # Measures cyclomatic complexity of functions
+    - godot # Ensures comments end with a period
+    - gosec # Identifies potential security issues
+    - govet # Runs go vet checks for common issues
+    - grouper # Ensures related declarations (const, var) are grouped
+    - ineffassign # Detects ineffective assignments that are overwritten
+    - misspell # Finds common spelling mistakes
+    - perfsprint # Suggests performance improvements for fmt.Sprintf
+    - revive # Enforces various coding style and best practices
+    - staticcheck # Comprehensive static analysis for Go code
+    - unused # Detects unused variables, functions, and packages
+    - unconvert # Removes unnecessary type conversions
+    - prealloc # Suggests pre-allocating slices for performance
+
+  settings:
+    errcheck:
+      check-type-assertions: true # Check type assertions for errors
+      check-blank: false # Allow ignoring errors with blank identifier (_)
+    govet:
+      disable:
+        - shadow
+    gocyclo:
+      min-complexity: 30
+    forbidigo:
+      forbid:
+        - pattern: ^(fmt\.Print.*|print|println)$ # Prohibit fmt.Print* functions
+        - pattern: ^os\.Exit$ # Prohibit os.Exit function
+    goconst:
+      min-len: 3 # Minimum length for string literals to be considered constants
+      min-occurrences: 5 # Minimum occurrences for suggesting a constant
+    misspell:
+      locale: US # Use US English for spelling checks
+
+  exclusions:
+    generated: lax # Apply lenient checks to generated files
+    rules:
+      - path: /
+        linters:
+          - revive
+        text: "should have a package comment" # Ignore revive's package comment warning
+      - path: _test\.go$
+        linters:
+          - perfsprint
+          - bodyclose
+
+    paths:
+      - tests
+      - .git
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+    - golines
+  settings:
+    golines:
+      max-len: 120
+  exclusions:
+    generated: lax
+    paths:
+      - tests
