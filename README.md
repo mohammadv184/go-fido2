@@ -1,5 +1,7 @@
 # Go FIDO2
-
+[![Go Reference](https://pkg.go.dev/badge/github.com/mohammadv184/go-fido2.svg)](https://pkg.go.dev/github.com/mohammadv184/go-fido2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mohammadv184/gi-fido2)](https://goreportcard.com/report/github.com/mohammadv184/go-fido2)
+---
 A comprehensive, CGO-free Go implementation of the **FIDO2 Client to Authenticator Protocol (CTAP2)**.
 
 This library allows Go applications to communicate directly with FIDO2 authenticators (security keys) such as YubiKeys, SoloKeys, and others. It implements the core CTAP2 protocol in a transport-agnostic manner, supporting the full stack from transport layers up to high-level operations like credential creation, assertion retrieval, and credential management.
