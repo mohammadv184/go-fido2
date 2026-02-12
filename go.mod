@@ -1,6 +1,6 @@
 module github.com/mohammadv184/go-fido2
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/ebitengine/purego v0.9.1
