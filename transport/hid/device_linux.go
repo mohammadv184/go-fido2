@@ -270,7 +270,7 @@ func (d *Device) getFeatureReport(reportID byte) ([]byte, error) {
 		d.extra.file.Fd(),
 		//nolint:gosec // buffer length fits in uint16, pointer cast is necessary for ioctl
 		uint(ioc(iocWrite|iocRead, 'H', 0x07, uint16(len(buf)))),
-		uintptr(unsafe.Pointer(&buf[0])),
+		uintptr(unsafe.Pointer(&buf[0])), // nolint:gosec // pointer cast is necessary for ioctl
 	)
 	if err != nil {
 		return nil, err
@@ -290,7 +290,7 @@ func (d *Device) setFeatureReport(reportID byte, data []byte) error {
 		d.extra.file.Fd(),
 		//nolint:gosec // buffer length fits in uint16, pointer cast is necessary for ioctl
 		uint(ioc(iocWrite|iocRead, 'H', 0x06, uint16(len(buf)))),
-		uintptr(unsafe.Pointer(&buf[0])),
+		uintptr(unsafe.Pointer(&buf[0])), // nolint:gosec // pointer cast is necessary for ioctl
 	)
 	return err
 }

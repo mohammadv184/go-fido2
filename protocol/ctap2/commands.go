@@ -61,6 +61,7 @@ func (o Option) String() string {
 }
 
 // CTAP2 Options.
+// nolint:gosec // These are not secrets.
 const (
 	// OptionPlatformDevice means the authenticator is a platform device.
 	OptionPlatformDevice Option = "plat"

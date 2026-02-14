@@ -59,7 +59,10 @@ func NewPinUvAuthProtocol(number PinUvAuthProtocolType) (*PinUvAuthProtocol, err
 		return nil, fmt.Errorf("cannot generate platform P-256 keypair: %w", err)
 	}
 
-	platformPubkey, err := ecdh2.KeyFromPublic(platformPrivkey.Public().(*ecdh.PublicKey))
+	// nolint:errcheck,forcetypeassert
+	platformPubkey, err := ecdh2.KeyFromPublic(
+		platformPrivkey.Public().(*ecdh.PublicKey),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("cannot convert platform public key to COSE_Key: %w", err)
 	}
@@ -154,6 +157,9 @@ func Authenticate(number PinUvAuthProtocolType, sharedSecret []byte, message []b
 // EncryptLargeBlob encrypts a large blob data.
 func EncryptLargeBlob(key []byte, origData []byte) (*LargeBlob, error) {
 	plaintext, err := compress(origData)
+	if err != nil {
+		return nil, err
+	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {

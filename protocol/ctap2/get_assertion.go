@@ -13,6 +13,7 @@ import (
 // AuthDataFlag represents flags in the Authenticator Data.
 type AuthDataFlag byte
 
+// auth data flag consts.
 const (
 	AuthDataFlagUserPresent AuthDataFlag = 1 << iota
 	_

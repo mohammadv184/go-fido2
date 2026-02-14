@@ -24,9 +24,9 @@ type CTAPHIDClient struct {
 	cid ctaphid.ChannelID
 }
 
-// NewClient creates a new CTAP2 client over CTAPHID.
+// NewCTAPHIDClient creates a new CTAP2 client over CTAPHID.
 // It initializes the communication by sending a CTAPHID_INIT command with a random nonce.
-func NewClient(
+func NewCTAPHIDClient(
 	ctaphidClient *ctaphid.Client,
 	cborEncMode cbor.EncMode,
 ) (*CTAPHIDClient, error) {
@@ -115,6 +115,7 @@ func (c *CTAPHIDClient) MakeCredential(
 	return resp, nil
 }
 
+// GetAssertion performs the AuthenticatorGetAssertion operation. It yields each assertion response as it is received, allowing for processing of multiple assertions if the authenticator has more than one credential for the given RP ID.
 func (c *CTAPHIDClient) GetAssertion(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	pinUvAuthToken []byte,
@@ -203,6 +204,7 @@ func (c *CTAPHIDClient) GetAssertion(
 	}
 }
 
+// GetInfo performs the AuthenticatorGetInfo operation.
 func (c *CTAPHIDClient) GetInfo() (*AuthenticatorGetInfoResponse, error) {
 	respRaw, err := c.ctaphidClient.CBOR(c.cid, []byte{byte(CMDAuthenticatorGetInfo)})
 	if err != nil {
@@ -217,6 +219,7 @@ func (c *CTAPHIDClient) GetInfo() (*AuthenticatorGetInfoResponse, error) {
 	return resp, nil
 }
 
+// GetPINRetries performs the ClientPIN subcommand to get the number of remaining PIN retries and whether a power cycle is required to reset the retries. The pinUvAuthProtocolType parameter is required for some authenticators (e.g., SoloKeys Solo 2) even though it is not strictly necessary for this subcommand according to the CTAP2 specification.
 func (c *CTAPHIDClient) GetPINRetries(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 ) (uint, bool, error) {
@@ -244,6 +247,7 @@ func (c *CTAPHIDClient) GetPINRetries(
 	return resp.PinRetries, resp.PowerCycleState, nil
 }
 
+// GetKeyAgreement performs the ClientPIN subcommand to get the key agreement key for the specified PIN/UV auth protocol. This key is used in subsequent ClientPIN subcommands that require encryption, such as SetPIN and ChangePIN.
 func (c *CTAPHIDClient) GetKeyAgreement(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 ) (key.Key, error) {
@@ -270,6 +274,7 @@ func (c *CTAPHIDClient) GetKeyAgreement(
 	return resp.KeyAgreement, nil
 }
 
+// SetPIN performs the ClientPIN subcommand to set the PIN for the authenticator. It uses the specified PIN/UV auth protocol and key agreement key to encrypt the new PIN before sending it to the authenticator.
 func (c *CTAPHIDClient) SetPIN(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	keyAgreement key.Key,
@@ -326,6 +331,7 @@ func (c *CTAPHIDClient) SetPIN(
 	return nil
 }
 
+// ChangePIN performs the ClientPIN subcommand to change the PIN for the authenticator. It uses the specified PIN/UV auth protocol and key agreement key to encrypt the current PIN hash and the new PIN before sending them to the authenticator.
 func (c *CTAPHIDClient) ChangePIN(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	keyAgreement key.Key,
@@ -497,6 +503,7 @@ func (c *CTAPHIDClient) GetPinUvAuthTokenUsingUvWithPermissions(
 	return pinUvAuthToken, nil
 }
 
+// GetUVRetries performs the ClientPIN subcommand to get the number of remaining user verification (UV) retries.
 func (c *CTAPHIDClient) GetUVRetries() (uint, error) {
 	req := &AuthenticatorClientPINRequest{
 		SubCommand: ClientPINSubCommandGetUVRetries,
@@ -579,6 +586,7 @@ func (c *CTAPHIDClient) GetPinUvAuthTokenUsingPinWithPermissions(
 	return pinUvAuthToken, nil
 }
 
+// Reset performs the AuthenticatorReset operation, which resets the authenticator to factory defaults. This operation usually requires user presence.
 func (c *CTAPHIDClient) Reset() error {
 	_, err := c.ctaphidClient.CBOR(c.cid, []byte{byte(CMDAuthenticatorReset)})
 	if err != nil {
@@ -588,6 +596,7 @@ func (c *CTAPHIDClient) Reset() error {
 	return nil
 }
 
+// GetBioModality performs the BioEnrollment operation to get the biometric modality of the authenticator.
 func (c *CTAPHIDClient) GetBioModality(
 	preview bool,
 ) (*AuthenticatorBioEnrollmentResponse, error) {
@@ -616,6 +625,7 @@ func (c *CTAPHIDClient) GetBioModality(
 	return resp, nil
 }
 
+// GetFingerprintSensorInfo performs the BioEnrollment operation to get information about the fingerprint sensor.
 func (c *CTAPHIDClient) GetFingerprintSensorInfo(
 	preview bool,
 ) (*AuthenticatorBioEnrollmentResponse, error) {
@@ -647,6 +657,7 @@ func (c *CTAPHIDClient) GetFingerprintSensorInfo(
 	return resp, nil
 }
 
+// BeginEnroll performs the BioEnrollment operation to start the biometric enrollment process.
 func (c *CTAPHIDClient) BeginEnroll(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -705,6 +716,7 @@ func (c *CTAPHIDClient) BeginEnroll(
 	return resp, nil
 }
 
+// EnrollCaptureNextSample performs the BioEnrollment operation to capture the next sample for biometric enrollment.
 func (c *CTAPHIDClient) EnrollCaptureNextSample(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -763,6 +775,7 @@ func (c *CTAPHIDClient) EnrollCaptureNextSample(
 	return resp, nil
 }
 
+// CancelCurrentEnrollment performs the BioEnrollment operation to cancel the current biometric enrollment.
 func (c *CTAPHIDClient) CancelCurrentEnrollment(
 	preview bool,
 ) error {
@@ -788,6 +801,7 @@ func (c *CTAPHIDClient) CancelCurrentEnrollment(
 	return nil
 }
 
+// EnumerateEnrollments performs the BioEnrollment operation to list the biometric enrollments on the authenticator.
 func (c *CTAPHIDClient) EnumerateEnrollments(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -829,6 +843,7 @@ func (c *CTAPHIDClient) EnumerateEnrollments(
 	return resp, nil
 }
 
+// SetFriendlyName performs the BioEnrollment operation to set a friendly name for a biometric enrollment.
 func (c *CTAPHIDClient) SetFriendlyName(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -881,6 +896,7 @@ func (c *CTAPHIDClient) SetFriendlyName(
 	return nil
 }
 
+// RemoveEnrollment performs the BioEnrollment operation to remove a biometric enrollment.
 func (c *CTAPHIDClient) RemoveEnrollment(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -930,6 +946,7 @@ func (c *CTAPHIDClient) RemoveEnrollment(
 	return nil
 }
 
+// GetCredsMetadata performs the CredentialManagement operation to retrieve metadata about credentials on the authenticator.
 func (c *CTAPHIDClient) GetCredsMetadata(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -970,6 +987,7 @@ func (c *CTAPHIDClient) GetCredsMetadata(
 	return resp, nil
 }
 
+// EnumerateRPs performs the CredentialManagement operation to list the Relying Parties with credentials on the authenticator.
 func (c *CTAPHIDClient) EnumerateRPs(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -1054,6 +1072,7 @@ func (c *CTAPHIDClient) EnumerateRPs(
 	}
 }
 
+// EnumerateCredentials performs the CredentialManagement operation to list the credentials for a specific Relying Party.
 func (c *CTAPHIDClient) EnumerateCredentials(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -1149,6 +1168,7 @@ func (c *CTAPHIDClient) EnumerateCredentials(
 	}
 }
 
+// DeleteCredential performs the CredentialManagement operation to delete a credential from the authenticator.
 func (c *CTAPHIDClient) DeleteCredential(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -1195,6 +1215,7 @@ func (c *CTAPHIDClient) DeleteCredential(
 	return nil
 }
 
+// UpdateUserInformation performs the CredentialManagement operation to update the user information for a credential.
 func (c *CTAPHIDClient) UpdateUserInformation(
 	preview bool,
 	pinUvAuthProtocolType PinUvAuthProtocolType,
@@ -1246,6 +1267,7 @@ func (c *CTAPHIDClient) UpdateUserInformation(
 	return nil
 }
 
+// LargeBlobs performs the AuthenticatorLargeBlobs operation to manage large blobs on the authenticator.
 func (c *CTAPHIDClient) LargeBlobs(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	pinUvAuthToken []byte,
@@ -1268,7 +1290,7 @@ func (c *CTAPHIDClient) LargeBlobs(
 		}
 
 		offsetBin := make([]byte, 4)
-		binary.LittleEndian.PutUint32(offsetBin, uint32(offset))
+		binary.LittleEndian.PutUint32(offsetBin, uint32(offset)) // nolint:gosec // uint is same as uint32
 
 		hasher := sha256.New()
 		hasher.Reset()
@@ -1312,6 +1334,7 @@ func (c *CTAPHIDClient) LargeBlobs(
 	return nil, nil
 }
 
+// EnableEnterpriseAttestation performs the AuthenticatorConfig operation to enable enterprise attestation.
 func (c *CTAPHIDClient) EnableEnterpriseAttestation(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	pinUvAuthToken []byte,
@@ -1348,6 +1371,7 @@ func (c *CTAPHIDClient) EnableEnterpriseAttestation(
 	return nil
 }
 
+// ToggleAlwaysUV performs the AuthenticatorConfig operation to toggle the Always UV setting.
 func (c *CTAPHIDClient) ToggleAlwaysUV(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	pinUvAuthToken []byte,
@@ -1384,6 +1408,7 @@ func (c *CTAPHIDClient) ToggleAlwaysUV(
 	return nil
 }
 
+// SetMinPINLength performs the AuthenticatorConfig operation to set the minimum PIN length.
 func (c *CTAPHIDClient) SetMinPINLength(
 	pinUvAuthProtocolType PinUvAuthProtocolType,
 	pinUvAuthToken []byte,

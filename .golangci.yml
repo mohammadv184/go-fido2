@@ -59,6 +59,7 @@ linters:
         linters:
           - perfsprint
           - bodyclose
+          - gosec
 
     paths:
       - tests

@@ -59,6 +59,7 @@ const (
 	AttestationStatementFormatIdentifierNone AttestationStatementFormatIdentifier = "none"
 )
 
+// nolint:gosec // These are not secrets.
 const (
 	// ExtensionIdentifierAppID is the FIDO AppID extension.
 	ExtensionIdentifierAppID ExtensionIdentifier = "appid"

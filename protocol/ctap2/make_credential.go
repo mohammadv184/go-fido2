@@ -68,6 +68,7 @@ func ParseMakeCredentialAuthData(data []byte) (*MakeCredentialAuthData, error) {
 	return makeCredentialAuthData, nil
 }
 
+// PackedAttestationStatementFormat attempts to parse the attestation statement as Packed format.
 func (r *AuthenticatorMakeCredentialResponse) PackedAttestationStatementFormat() (*webauthn.PackedAttestationStatementFormat, bool) {
 	algRaw, ok := r.AttestationStatement["alg"]
 	if !ok {
@@ -95,7 +96,7 @@ func (r *AuthenticatorMakeCredentialResponse) PackedAttestationStatementFormat()
 	if !ok {
 		return nil, false
 	}
-	var x5c [][]byte
+	x5c := make([][]byte, 0, len(x5cSlice))
 	for _, certRaw := range x5cSlice {
 		cert, ok := certRaw.([]byte)
 		if !ok {
@@ -111,6 +112,7 @@ func (r *AuthenticatorMakeCredentialResponse) PackedAttestationStatementFormat()
 	}, true
 }
 
+// FIDOU2FAttestationStatementFormat attempts to parse the attestation statement as FIDO U2F format.
 func (r *AuthenticatorMakeCredentialResponse) FIDOU2FAttestationStatementFormat() (*webauthn.FIDOU2FAttestationStatementFormat, bool) {
 	x5cRaw, ok := r.AttestationStatement["x5c"]
 	if !ok {
@@ -136,6 +138,7 @@ func (r *AuthenticatorMakeCredentialResponse) FIDOU2FAttestationStatementFormat(
 	}, true
 }
 
+// TPMAttestationStatementFormat attempts to parse the attestation statement as TPM format.
 func (r *AuthenticatorMakeCredentialResponse) TPMAttestationStatementFormat() (*webauthn.TPMAttestationStatementFormat, bool) {
 	verRaw, ok := r.AttestationStatement["ver"]
 	if !ok {
@@ -163,7 +166,7 @@ func (r *AuthenticatorMakeCredentialResponse) TPMAttestationStatementFormat() (*
 	if !ok {
 		return nil, false
 	}
-	var x5c [][]byte
+	x5c := make([][]byte, 0, len(x5cSlice))
 	for _, certRaw := range x5cSlice {
 		cert, ok := certRaw.([]byte)
 		if !ok {

@@ -26,7 +26,7 @@ func NewMessage(cid ChannelID, cmd Command, data []byte) (Message, error) {
 	msg = append(msg, &packet{
 		cid:     cid,
 		command: cmd,
-		length:  uint16(len(data)),
+		length:  uint16(len(data)), // nolint:gosec // length is validated above
 		// DATA starts from offset 7
 		data: data[:min(len(data), 64-7)],
 	})

@@ -60,6 +60,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		require.NoError(t, err)
 
 		decrypted, err := Decrypt(key, ciphertext)
+		require.NoError(t, err)
 		assert.Equal(t, slices.Concat(plaintext, padding), decrypted)
 	}
 
@@ -69,6 +70,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		require.NoError(t, err)
 
 		decrypted, err := Decrypt(key, ciphertext)
+		require.NoError(t, err)
 		assert.Equal(t, slices.Concat(plaintext, plaintext), decrypted)
 	}
 }

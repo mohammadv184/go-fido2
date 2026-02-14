@@ -8,12 +8,14 @@ import (
 // Version represents the CTAP protocol version.
 type Version string
 
+// version consts.
+// nolint:revive
 const (
-	FIDO_2_0     Version = "FIDO_2_0"
-	FIDO_2_1_PRE Version = "FIDO_2_1_PRE"
-	FIDO_2_1     Version = "FIDO_2_1"
-	FIDO_2_2     Version = "FIDO_2_2"
-	U2F_V2       Version = "U2F_V2"
+	Fido2_0     Version = "FIDO_2_0"
+	Fido2_1_Pre Version = "FIDO_2_1_PRE"
+	Fido2_1     Version = "FIDO_2_1"
+	Fido2_2     Version = "FIDO_2_2"
+	U2FV2       Version = "U2F_V2"
 )
 
 // AuthenticatorGetInfoResponse represents the response to the AuthenticatorGetInfo command.
@@ -59,13 +61,13 @@ func (i AuthenticatorGetInfoResponse) IsPreviewOnly() bool {
 
 	for _, v := range i.Versions {
 		switch v {
-		case FIDO_2_0:
+		case Fido2_0:
 			fidoTwo = true
-		case FIDO_2_1_PRE:
+		case Fido2_1_Pre:
 			fidoTwoOnePre = true
-		case FIDO_2_1:
+		case Fido2_1:
 			fidoTwoOne = true
-		case FIDO_2_2:
+		case Fido2_2:
 			fidoTwoTwo = true
 		}
 	}

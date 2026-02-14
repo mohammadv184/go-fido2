@@ -1,3 +1,6 @@
+// Package fido2 provides a high-level interface for interacting with FIDO2 authenticators over HID.
+// It supports core FIDO2 operations such as making credentials, getting assertions,
+// and managing device settings like PINs and biometric enrollments.
 package fido2
 
 import (
@@ -92,19 +95,19 @@ func OpenPath(path string) (*Device, error) {
 
 	encMode, err := cbor.CTAP2EncOptions().EncMode()
 	if err != nil {
-		hidDev.Close()
+		_ = ctaphidClient.Close()
 		return nil, fmt.Errorf("failed to create CBOR encoding mode: %w", err)
 	}
 
-	ctapClient, err := ctap2.NewClient(ctaphidClient, encMode)
+	ctapClient, err := ctap2.NewCTAPHIDClient(ctaphidClient, encMode)
 	if err != nil {
-		hidDev.Close()
+		_ = ctaphidClient.Close()
 		return nil, fmt.Errorf("failed to create CTAP2 client: %w", err)
 	}
 
 	info, err := ctapClient.GetInfo()
 	if err != nil {
-		hidDev.Close()
+		_ = ctapClient.Close()
 		return nil, fmt.Errorf("failed to get authenticator info: %w", err)
 	}
 
@@ -133,7 +136,7 @@ func (d *Device) Close() error {
 }
 
 // MakeCredential initiates the process of creating a new credential.
-func (d *Device) MakeCredential(
+func (d *Device) MakeCredential( // nolint:gocyclo
 	pinUvAuthToken []byte,
 	clientData []byte,
 	rp webauthn.PublicKeyCredentialRpEntity,
@@ -446,7 +449,7 @@ func (d *Device) MakeCredential(
 }
 
 // GetAssertion provides a generator function to iterate over assertions.
-func (d *Device) GetAssertion(
+func (d *Device) GetAssertion( // nolint:gocyclo
 	pinUvAuthToken []byte,
 	rpID string,
 	clientData []byte,
@@ -529,7 +532,7 @@ func (d *Device) GetAssertion(
 
 		// prf
 		if extInputs.PRFInputs != nil {
-			if extInputs.PRF.EvalByCredential != nil && (allowList == nil || len(allowList) == 0) {
+			if extInputs.PRF.EvalByCredential != nil && len(allowList) == 0 {
 				yield(
 					nil,
 					newErrorMessage(ErrNotSupported, "evalByCredential works only in conjunction with allowList"),
@@ -551,11 +554,7 @@ func (d *Device) GetAssertion(
 
 			for _, id := range ids {
 				index := slices.IndexFunc(allowList, func(descriptor webauthn.PublicKeyCredentialDescriptor) bool {
-					if slices.Equal(descriptor.ID, id) {
-						return true
-					}
-
-					return false
+					return slices.Equal(descriptor.ID, id)
 				})
 				if index != -1 {
 					v, ok := extInputs.PRF.EvalByCredential[base64.URLEncoding.EncodeToString(allowList[index].ID)]
@@ -1130,7 +1129,6 @@ func (d *Device) EnumerateRPs(
 		}
 
 		for rp, err := range d.ctapClient.EnumerateRPs(
-
 			d.info.IsPreviewOnly(),
 			d.info.PinUvAuthProtocols[0],
 			pinUvAuthToken,
@@ -1338,7 +1336,7 @@ func (d *Device) SetLargeBlobs(pinUvAuthToken []byte, blobs []*ctap2.LargeBlob) 
 	length := uint(len(set))
 
 	i := 0
-	for chunk := range slices.Chunk(set, int(maxFragmentLength)) {
+	for chunk := range slices.Chunk(set, int(maxFragmentLength)) { //nolint:gosec
 		if i > 0 {
 			length = 0
 		}
@@ -1400,6 +1398,7 @@ func (d *Device) ToggleAlwaysUV(pinUvAuthToken []byte) error {
 	)
 }
 
+// SetMinPINLength sets the minimum PIN length on the device if supported, using the provided token and parameters.
 func (d *Device) SetMinPINLength(
 	pinUvAuthToken []byte,
 	newMinPINLength uint,
