@@ -72,26 +72,40 @@ const (
 	kCFAllocatorDefault _CFAllocatorRef = 0
 
 	kCFNumberSInt16Type _CFIndex = 2
+	kCFNumberSInt32Type _CFIndex = 3
 
 	kCFStringEncodingUTF8 _CFStringEncoding = 0x08000100
+
+	// kFIDOUsagePage is the HID usage page for FIDO/U2F authenticators.
+	// Opening IOHIDManager with only this usage page avoids the macOS
+	// Input Monitoring TCC prompt that appears when opening all HID devices.
+	kFIDOUsagePage = int32(0xF1D0)
+	kFIDOUsage     = int32(0x01)
 )
 
 var (
-	_CFDataGetBytes          func(data _CFDataRef, rang _CFRange, buffer []byte)
-	_CFDataGetLength         func(data _CFDataRef) _CFIndex
-	_CFNumberGetValue        func(number _CFNumberRef, theType _CFNumberType, valuePtr unsafe.Pointer) bool
-	_CFRelease               func(cf _CFTypeRef)
-	_CFRunLoopGetCurrent     func() _CFRunLoopRef
-	_CFRunLoopRun            func()
-	_CFRunLoopStop           func(runLoop _CFRunLoopRef)
-	_CFSetGetCount           func(theSet _CFSetRef) _CFIndex
-	_CFSetGetValues          func(theSet _CFSetRef, value unsafe.Pointer)
-	_CFStringCreateWithBytes func(alloc _CFAllocatorRef, bytes []byte, numBytes _CFIndex, encoding _CFStringEncoding, isExternalRepresentation bool) _CFStringRef
-	_CFStringGetCString      func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
-	_CFStringGetLength       func(theString _CFStringRef) _CFIndex
+	_CFDataGetBytes            func(data _CFDataRef, rang _CFRange, buffer []byte)
+	_CFDataGetLength           func(data _CFDataRef) _CFIndex
+	_CFDictionaryCreateMutable func(alloc _CFAllocatorRef, capacity _CFIndex, keyCallBacks uintptr, valueCallBacks uintptr) _CFDictionaryRef
+	_CFDictionarySetValue      func(dict _CFDictionaryRef, key uintptr, value uintptr)
+	_CFNumberCreate            func(alloc _CFAllocatorRef, theType _CFNumberType, valuePtr unsafe.Pointer) _CFNumberRef
+	_CFNumberGetValue          func(number _CFNumberRef, theType _CFNumberType, valuePtr unsafe.Pointer) bool
+	_CFRelease                 func(cf _CFTypeRef)
+	_CFRunLoopGetCurrent       func() _CFRunLoopRef
+	_CFRunLoopRun              func()
+	_CFRunLoopStop             func(runLoop _CFRunLoopRef)
+	_CFSetGetCount             func(theSet _CFSetRef) _CFIndex
+	_CFSetGetValues            func(theSet _CFSetRef, value unsafe.Pointer)
+	_CFStringCreateWithBytes   func(alloc _CFAllocatorRef, bytes []byte, numBytes _CFIndex, encoding _CFStringEncoding, isExternalRepresentation bool) _CFStringRef
+	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
+	_CFStringGetLength         func(theString _CFStringRef) _CFIndex
 )
 
-var _kCFRunLoopDefaultMode uintptr
+var (
+	_kCFRunLoopDefaultMode           uintptr
+	_kCFTypeDictionaryKeyCallBacks   uintptr
+	_kCFTypeDictionaryValueCallBacks uintptr
+)
 
 const (
 	kIOHIDOptionsTypeNone        _IOOptionBits = 0
@@ -143,6 +157,9 @@ func init() {
 
 	purego.RegisterLibFunc(&_CFDataGetBytes, cf, "CFDataGetBytes")
 	purego.RegisterLibFunc(&_CFDataGetLength, cf, "CFDataGetLength")
+	purego.RegisterLibFunc(&_CFDictionaryCreateMutable, cf, "CFDictionaryCreateMutable")
+	purego.RegisterLibFunc(&_CFDictionarySetValue, cf, "CFDictionarySetValue")
+	purego.RegisterLibFunc(&_CFNumberCreate, cf, "CFNumberCreate")
 	purego.RegisterLibFunc(&_CFNumberGetValue, cf, "CFNumberGetValue")
 	purego.RegisterLibFunc(&_CFRelease, cf, "CFRelease")
 	purego.RegisterLibFunc(&_CFRunLoopGetCurrent, cf, "CFRunLoopGetCurrent")
@@ -155,6 +172,16 @@ func init() {
 	purego.RegisterLibFunc(&_CFStringGetLength, cf, "CFStringGetLength")
 
 	_kCFRunLoopDefaultMode, err = purego.Dlsym(cf, "kCFRunLoopDefaultMode")
+	if err != nil {
+		panic(err)
+	}
+
+	_kCFTypeDictionaryKeyCallBacks, err = purego.Dlsym(cf, "kCFTypeDictionaryKeyCallBacks")
+	if err != nil {
+		panic(err)
+	}
+
+	_kCFTypeDictionaryValueCallBacks, err = purego.Dlsym(cf, "kCFTypeDictionaryValueCallBacks")
 	if err != nil {
 		panic(err)
 	}
@@ -186,9 +213,47 @@ func init() {
 	purego.RegisterLibFunc(&_IORegistryEntryFromPath, iokit, "IORegistryEntryFromPath")
 
 	mgr = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
+	// Set FIDO-specific matching BEFORE opening to avoid the macOS Input Monitoring
+	// TCC prompt. Opening with nil matching (all HID devices) causes macOS to
+	// treat the app as a potential keyboard monitor.
+	if dict := createFIDOMatchingDict(); dict != 0 {
+		_IOHIDManagerSetDeviceMatching(mgr, dict)
+		_CFRelease(_CFTypeRef(dict))
+	}
 	if rv := _IOHIDManagerOpen(mgr, kIOHIDOptionsTypeNone); rv != kIOReturnSuccess {
 		panic("failed to create iohid manager")
 	}
+}
+
+// createFIDOMatchingDict creates a CFDictionary matching only FIDO2 HID devices
+// (usage page 0xF1D0, usage 0x01). This prevents macOS from showing the
+// Input Monitoring TCC permission prompt.
+func createFIDOMatchingDict() _CFDictionaryRef {
+	dict := _CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
+		_kCFTypeDictionaryKeyCallBacks, _kCFTypeDictionaryValueCallBacks)
+	if dict == 0 {
+		return 0
+	}
+
+	usagePage := kFIDOUsagePage
+	pageKey := _CFStringCreateWithBytes(kCFAllocatorDefault,
+		[]byte("DeviceUsagePage"), _CFIndex(len("DeviceUsagePage")),
+		kCFStringEncodingUTF8, false)
+	pageValue := _CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, unsafe.Pointer(&usagePage))
+	_CFDictionarySetValue(dict, uintptr(pageKey), uintptr(pageValue))
+	_CFRelease(_CFTypeRef(pageKey))
+	_CFRelease(_CFTypeRef(pageValue))
+
+	usage := kFIDOUsage
+	usageKey := _CFStringCreateWithBytes(kCFAllocatorDefault,
+		[]byte("DeviceUsage"), _CFIndex(len("DeviceUsage")),
+		kCFStringEncodingUTF8, false)
+	usageValue := _CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, unsafe.Pointer(&usage))
+	_CFDictionarySetValue(dict, uintptr(usageKey), uintptr(usageValue))
+	_CFRelease(_CFTypeRef(usageKey))
+	_CFRelease(_CFTypeRef(usageValue))
+
+	return dict
 }
 
 func byteSliceToString(b []byte) string {
@@ -243,7 +308,6 @@ func getPropertyString(device _IOHIDDeviceRef, key string) (string, error) {
 }
 
 func enumerate() ([]*Device, error) {
-	_IOHIDManagerSetDeviceMatching(mgr, 0)
 
 	rv := []*Device{}
 
